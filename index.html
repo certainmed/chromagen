@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChromaGen - Generator Palet Warna Pintar</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #f8fafc;
+            --text-color: #1e293b;
+            --border-color: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Prevent scrolling on desktop, handled inside elements */
+        }
+
+        /* --- Header --- */
+        header {
+            background: white;
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .logo {
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo i { color: #6366f1; }
+
+        .nav-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn:hover { background: #f1f5f9; }
+        .btn-primary { background: #1e293b; color: white; border: none; }
+        .btn-primary:hover { background: #334155; }
+
+        /* --- Main Palette Area --- */
+        main {
+            flex: 1;
+            display: flex;
+            width: 100%;
+        }
+
+        .palette-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        .color-col {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            transition: background-color 0.3s ease;
+            min-height: 100px; /* Fallback */
+        }
+
+        /* Controls inside color column */
+        .col-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+
+        .color-col:hover .col-controls {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .col-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            color: inherit; /* Will be set dynamically based on contrast */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.1rem;
+            backdrop-filter: blur(2px);
+        }
+
+        .col-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .hex-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+
+        .hex-text:hover {
+            background: rgba(0,0,0,0.1);
+        }
+
+        .lock-status {
+            margin-top: 30px;
+        }
+
+        /* --- Mobile Responsiveness --- */
+        @media (max-width: 768px) {
+            .palette-container {
+                flex-direction: column;
+            }
+            
+            .color-col {
+                flex-direction: row; /* Horizontal layout on mobile */
+                justify-content: space-between;
+                padding: 0 20px;
+            }
+
+            .col-controls {
+                flex-direction: row;
+                opacity: 1; /* Always visible on mobile */
+                transform: none;
+                order: 2;
+            }
+
+            .hex-text {
+                margin: 0;
+                font-size: 1.1rem;
+                order: 1;
+            }
+            
+            .lock-status {
+                margin: 0;
+                order: 3;
+            }
+
+            /* Hide less important buttons on mobile to save space */
+            .btn-text-desktop { display: none; }
+            .nav-actions { gap: 5px; }
+            .btn { padding: 8px 10px; }
+            
+            body { height: auto; min-height: 100vh; }
+            main { height: auto; min-height: calc(100vh - 60px); }
+        }
+
+        /* --- Modals --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            backdrop-filter: blur(3px);
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: translateY(20px);
+            transition: transform 0.3s;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-overlay.active .modal {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title { font-size: 1.25rem; font-weight: 700; }
+        .close-modal { font-size: 1.5rem; color: #94a3b8; }
+
+        /* Sliders (HSL) */
+        .slider-group { margin-bottom: 15px; }
+        .slider-label { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: 600; font-size: 0.9rem;}
+        input[type="range"] {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            appearance: none;
+            background: #e2e8f0;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+        }
+
+        /* Library List */
+        .library-list { display: flex; flex-direction: column; gap: 10px; }
+        .saved-palette-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        .mini-preview { display: flex; gap: 2px; width: 100px; height: 30px; border-radius: 4px; overflow: hidden; }
+        .mini-color { flex: 1; height: 100%; }
+        
+        /* Shades Grid */
+        .shades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+        }
+        .shade-box {
+            height: 60px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            color: transparent;
+            transition: transform 0.2s;
+        }
+        .shade-box:hover {
+            transform: scale(1.1);
+            color: inherit; /* Only show text on hover if set */
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 50px;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .toast.active { transform: translateX(-50%) translateY(0); }
+
+        /* Shortcuts Table */
+        .shortcut-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .key-badge {
+            background: #e2e8f0;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <i class="fas fa-palette"></i> ChromaGen
+        </div>
+        <div class="nav-actions">
+            <button class="btn" onclick="openModal('libraryModal'); renderLibrary()">
+                <i class="fas fa-book"></i> <span class="btn-text-desktop">Library</span>
+            </button>
+            <button class="btn" onclick="openModal('exportModal')">
+                <i class="fas fa-download"></i> <span class="btn-text-desktop">Export</span>
+            </button>
+            <button class="btn" onclick="openModal('shortcutsModal')">
+                <i class="fas fa-keyboard"></i>
+            </button>
+            <button class="btn btn-primary" onclick="generatePalette()">
+                <i class="fas fa-sync-alt"></i> <span class="btn-text-desktop">Generate</span>
+            </button>
+        </div>
+    </header>
+
+    <main>
+        <div class="palette-container" id="paletteContainer">
+            <!-- Columns injected by JS -->
+        </div>
+    </main>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMsg">Warna disalin!</span>
+    </div>
+
+    <!-- HSL ADJUST MODAL -->
+    <div class="modal-overlay" id="adjustModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Sesuaikan Warna</div>
+                <button class="close-modal" onclick="closeModal('adjustModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="slidersContainer">
+                <div class="slider-group">
+                    <div class="slider-label"><span>Hue</span> <span id="hueVal">0</span></div>
+                    <input type="range" min="0" max="360" id="hueInput">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label"><span>Saturation</span> <span id="satVal">0%</span></div>
+                    <input type="range" min="0" max="100" id="satInput">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label"><span>Lightness</span> <span id="lightVal">0%</span></div>
+                    <input type="range" min="0" max="100" id="lightInput">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHADES MODAL -->
+    <div class="modal-overlay" id="shadesModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Variasi Warna (Shades)</div>
+                <button class="close-modal" onclick="closeModal('shadesModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="shades-grid" id="shadesGrid"></div>
+        </div>
+    </div>
+
+    <!-- LIBRARY MODAL -->
+    <div class="modal-overlay" id="libraryModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Palet Tersimpan</div>
+                <button class="close-modal" onclick="closeModal('libraryModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="library-list" id="libraryList">
+                <p style="text-align:center; color:#94a3b8;">Belum ada palet tersimpan.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXPORT MODAL -->
+    <div class="modal-overlay" id="exportModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Export Palet</div>
+                <button class="close-modal" onclick="closeModal('exportModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button class="btn" onclick="savePaletteToStorage()" style="justify-content:center;">
+                    <i class="fas fa-save"></i> Simpan ke Library
+                </button>
+                <hr style="border:0; border-top:1px solid #eee; margin:5px 0;">
+                <button class="btn" onclick="exportCSS()" style="justify-content:center;">
+                    <i class="fab fa-css3"></i> Copy CSS Code
+                </button>
+                <button class="btn" onclick="exportImage()" style="justify-content:center;">
+                    <i class="fas fa-image"></i> Download PNG
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHORTCUTS MODAL -->
+    <div class="modal-overlay" id="shortcutsModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">Keyboard Shortcuts</div>
+                <button class="close-modal" onclick="closeModal('shortcutsModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="shortcuts-list">
+                <div class="shortcut-row">
+                    <span>Generate Warna Baru</span>
+                    <span class="key-badge">Spasi</span>
+                </div>
+                <div class="shortcut-row">
+                    <span>Lock/Unlock Warna</span>
+                    <span class="key-badge">Click Lock</span>
+                </div>
+                <div class="shortcut-row">
+                    <span>Copy Hex Code</span>
+                    <span class="key-badge">C (Hover)</span>
+                </div>
+                 <div class="shortcut-row">
+                    <span>Buka Library</span>
+                    <span class="key-badge">L</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let colors = [];
+        const savedPalettes = JSON.parse(localStorage.getItem('chromaGen_palettes') || "[]");
+        let activeAdjustIndex = null;
+
+        // --- Init ---
+        document.addEventListener('DOMContentLoaded', () => {
+            initColors();
+            setupEventListeners();
+        });
+
+        function initColors() {
+            // Generate 5 initial colors
+            colors = [];
+            for (let i = 0; i < 5; i++) {
+                colors.push({
+                    hex: generateRandomHex(),
+                    locked: false
+                });
+            }
+            renderPalette();
+        }
+
+        // --- Core Functions ---
+
+        function generateRandomHex() {
+            const hex = Math.floor(Math.random() * 16777215).toString(16);
+            return "#" + hex.padStart(6, "0");
+        }
+
+        function generatePalette() {
+            colors.forEach((colorObj, index) => {
+                if (!colorObj.locked) {
+                    colorObj.hex = generateRandomHex();
+                }
+            });
+            updateUI();
+        }
+
+        function renderPalette() {
+            const container = document.getElementById('paletteContainer');
+            container.innerHTML = '';
+
+            colors.forEach((colorObj, index) => {
+                const col = document.createElement('div');
+                col.classList.add('color-col');
+                col.id = `col-${index}`;
+                
+                // Content Structure
+                col.innerHTML = `
+                    <div class="col-controls">
+                        <button class="col-btn" onclick="openAdjustModal(${index})" title="Adjust Color"><i class="fas fa-sliders-h"></i></button>
+                        <button class="col-btn" onclick="openShadesModal(${index})" title="View Shades"><i class="fas fa-th"></i></button>
+                        <button class="col-btn" onclick="copyToClipboard('${colorObj.hex}')" title="Copy Hex"><i class="fas fa-copy"></i></button>
+                    </div>
+                    
+                    <h2 class="hex-text" onclick="promptChangeColor(${index})">${colorObj.hex}</h2>
+                    
+                    <div class="lock-status">
+                        <button class="col-btn" onclick="toggleLock(${index})" title="Lock/Unlock">
+                            <i class="fas ${colorObj.locked ? 'fa-lock' : 'fa-lock-open'}"></i>
+                        </button>
+                    </div>
+                `;
+
+                container.appendChild(col);
+            });
+            updateUI();
+        }
+
+        function updateUI() {
+            colors.forEach((colorObj, index) => {
+                const col = document.getElementById(`col-${index}`);
+                const hexText = col.querySelector('.hex-text');
+                const lockIcon = col.querySelector('.lock-status i');
+                const buttons = col.querySelectorAll('.col-btn');
+
+                // Set Background
+                col.style.backgroundColor = colorObj.hex;
+                hexText.innerText = colorObj.hex;
+
+                // Determine Contrast (White or Black text)
+                const luminance = getLuminance(colorObj.hex);
+                const textColor = luminance > 0.5 ? '#1e293b' : '#ffffff';
+                
+                col.style.color = textColor;
+                buttons.forEach(btn => {
+                    btn.style.color = textColor;
+                    // Adjust semi-transparent bg for buttons based on darkness
+                    btn.style.background = luminance > 0.5 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)';
+                });
+
+                // Update Lock Icon
+                lockIcon.className = `fas ${colorObj.locked ? 'fa-lock' : 'fa-lock-open'}`;
+            });
+        }
+
+        function toggleLock(index) {
+            colors[index].locked = !colors[index].locked;
+            updateUI();
+        }
+
+        function promptChangeColor(index) {
+            // Optional: A nicer prompt or input could be used, but default is robust
+            // For a really modern feel, we could swap the text with an <input type="color">
+            // But let's stick to Hex input logic for simplicity
+            let newHex = prompt("Masukkan kode Hex (cth: #FF5733):", colors[index].hex);
+            if (newHex && /^#[0-9A-F]{6}$/i.test(newHex)) {
+                colors[index].hex = newHex;
+                updateUI();
+            } else if (newHex) {
+                showToast("Format Hex tidak valid!", true);
+            }
+        }
+
+        // --- Helpers: Math & Color ---
+
+        function getLuminance(hex) {
+            const rgb = hexToRgb(hex);
+            const a = [rgb.r, rgb.g, rgb.b].map(function (v) {
+                v /= 255;
+                return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+            });
+            return a[0] * 0.2126 + a[1] * 0.7152 + a[2] * 0.0722;
+        }
+
+        function hexToRgb(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: parseInt(result[1], 16),
+                g: parseInt(result[2], 16),
+                b: parseInt(result[3], 16)
+            } : null;
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        function hexToHSL(hex) {
+            let {r, g, b} = hexToRgb(hex);
+            r /= 255; g /= 255; b /= 255;
+            let max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+
+            if (max === min) {
+                h = s = 0;
+            } else {
+                let d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return { h: h * 360, s: s * 100, l: l * 100 };
+        }
+
+        function HSLToHex(h, s, l) {
+            s /= 100; l /= 100;
+            let c = (1 - Math.abs(2 * l - 1)) * s,
+                x = c * (1 - Math.abs(((h / 60) % 2) - 1)),
+                m = l - c / 2,
+                r = 0, g = 0, b = 0;
+
+            if (0 <= h && h < 60) { r = c; g = x; b = 0; }
+            else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
+            else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
+            else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
+            else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
+            else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+            
+            return rgbToHex(Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255));
+        }
+
+        // --- Modals & Features ---
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            activeAdjustIndex = null;
+        }
+
+        // 1. Adjust (HSL)
+        function openAdjustModal(index) {
+            activeAdjustIndex = index;
+            const hex = colors[index].hex;
+            const hsl = hexToHSL(hex);
+
+            document.getElementById('hueInput').value = hsl.h;
+            document.getElementById('satInput').value = hsl.s;
+            document.getElementById('lightInput').value = hsl.l;
+            
+            updateSliderLabels(hsl.h, hsl.s, hsl.l);
+            openModal('adjustModal');
+        }
+
+        function updateSliderLabels(h, s, l) {
+            document.getElementById('hueVal').innerText = Math.round(h);
+            document.getElementById('satVal').innerText = Math.round(s) + '%';
+            document.getElementById('lightVal').innerText = Math.round(l) + '%';
+        }
+
+        // Listen to slider changes
+        ['hueInput', 'satInput', 'lightInput'].forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                if (activeAdjustIndex === null) return;
+                
+                const h = document.getElementById('hueInput').value;
+                const s = document.getElementById('satInput').value;
+                const l = document.getElementById('lightInput').value;
+                
+                updateSliderLabels(h, s, l);
+                
+                const newHex = HSLToHex(h, s, l);
+                colors[activeAdjustIndex].hex = newHex;
+                
+                // Update specific column background immediately for preview
+                updateUI();
+            });
+        });
+
+        // 2. Shades
+        function openShadesModal(index) {
+            const hex = colors[index].hex;
+            const grid = document.getElementById('shadesGrid');
+            grid.innerHTML = '';
+
+            // Generate 20 shades from very dark to very light of the same hue/sat
+            const hsl = hexToHSL(hex);
+            
+            for (let i = 5; i <= 95; i += 5) {
+                // Adjust lightness
+                const shadeHex = HSLToHex(hsl.h, hsl.s, i);
+                const box = document.createElement('div');
+                box.className = 'shade-box';
+                box.style.backgroundColor = shadeHex;
+                
+                // Text color contrast
+                const lum = getLuminance(shadeHex);
+                box.style.color = lum > 0.5 ? 'black' : 'white';
+                box.innerText = shadeHex;
+                
+                box.onclick = () => {
+                    copyToClipboard(shadeHex);
+                    closeModal('shadesModal');
+                };
+                
+                grid.appendChild(box);
+            }
+            openModal('shadesModal');
+        }
+
+        // 3. Library / Save
+        function savePaletteToStorage() {
+            const name = prompt("Beri nama palet ini:");
+            if (!name) return;
+            
+            const palette = {
+                id: Date.now(),
+                name: name,
+                colors: colors.map(c => c.hex)
+            };
+            
+            savedPalettes.push(palette);
+            localStorage.setItem('chromaGen_palettes', JSON.stringify(savedPalettes));
+            showToast("Palet tersimpan!");
+            closeModal('exportModal');
+        }
+
+        function renderLibrary() {
+            const list = document.getElementById('libraryList');
+            list.innerHTML = '';
+            
+            if (savedPalettes.length === 0) {
+                list.innerHTML = '<p style="text-align:center; color:#94a3b8;">Belum ada palet tersimpan.</p>';
+                return;
+            }
+
+            savedPalettes.forEach((p, idx) => {
+                const item = document.createElement('div');
+                item.className = 'saved-palette-item';
+                
+                let miniBoxes = '';
+                p.colors.forEach(c => {
+                    miniBoxes += `<div class="mini-color" style="background-color: ${c}"></div>`;
+                });
+
+                item.innerHTML = `
+                    <div style="font-weight:600;">${p.name}</div>
+                    <div class="mini-preview">${miniBoxes}</div>
+                    <div>
+                        <button class="btn" style="padding:4px 8px; font-size:0.8rem;" onclick="loadPalette(${idx})">Load</button>
+                        <button class="btn" style="padding:4px 8px; font-size:0.8rem; color:red;" onclick="deletePalette(${idx})"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                list.appendChild(item);
+            });
+        }
+
+        function loadPalette(idx) {
+            const p = savedPalettes[idx];
+            colors = p.colors.map(hex => ({ hex: hex, locked: false }));
+            renderPalette();
+            closeModal('libraryModal');
+            showToast("Palet dimuat!");
+        }
+
+        function deletePalette(idx) {
+            if(confirm('Hapus palet ini?')) {
+                savedPalettes.splice(idx, 1);
+                localStorage.setItem('chromaGen_palettes', JSON.stringify(savedPalettes));
+                renderLibrary();
+            }
+        }
+
+        // 4. Export
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`Warna ${text} disalin!`);
+            }).catch(err => {
+                console.error('Failed to copy', err);
+            });
+        }
+
+        function exportCSS() {
+            let css = `:root {\n`;
+            colors.forEach((c, i) => {
+                css += `  --color-${i + 1}: ${c.hex};\n`;
+            });
+            css += `}`;
+            navigator.clipboard.writeText(css).then(() => showToast("CSS Variables disalin!"));
+        }
+
+        function exportImage() {
+            // Create a temporary canvas
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const width = 1920; 
+            const height = 1080;
+            canvas.width = width;
+            canvas.height = height;
+            
+            // Draw colors
+            const colWidth = width / 5;
+            colors.forEach((c, i) => {
+                ctx.fillStyle = c.hex;
+                ctx.fillRect(i * colWidth, 0, colWidth, height);
+                
+                // Add Hex text
+                ctx.fillStyle = getLuminance(c.hex) > 0.5 ? '#000000' : '#ffffff';
+                ctx.font = 'bold 40px Inter, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(c.hex, (i * colWidth) + (colWidth / 2), height - 100);
+            });
+
+            // Save
+            const link = document.createElement('a');
+            link.download = 'palette.png';
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // --- Event Listeners & Keyboard ---
+        
+        function showToast(msg, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            toastMsg.innerText = msg;
+            toast.style.background = isError ? '#ef4444' : '#1e293b';
+            toast.classList.add('active');
+            setTimeout(() => {
+                toast.classList.remove('active');
+            }, 2000);
+        }
+
+        function setupEventListeners() {
+            document.addEventListener('keydown', (e) => {
+                // Ignore if modal is active or typing in input
+                if (document.querySelector('.modal-overlay.active')) return;
+                
+                if (e.code === 'Space') {
+                    e.preventDefault();
+                    generatePalette();
+                }
+                
+                if (e.code === 'KeyC') {
+                    // Copy the color user is hovering over? 
+                    // Difficult to track hover in pure JS keyboard event without tracking mouse pos.
+                    // Instead, let's copy the whole palette as text array to clipboard
+                    const arr = colors.map(c => c.hex).join(', ');
+                    copyToClipboard(arr);
+                    showToast("Semua hex disalin!");
+                }
+
+                if (e.code === 'KeyL') {
+                    openModal('libraryModal');
+                    renderLibrary();
+                }
+            });
+
+            // Close modals on clicking outside
+            document.querySelectorAll('.modal-overlay').forEach(overlay => {
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay) {
+                        closeModal(overlay.id);
+                    }
+                });
+            });
+        }
+
+    </script>
+</body>
+</html>
