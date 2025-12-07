@@ -797,13 +797,35 @@
             }
         }
 
-        // 4. Export
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast(`Warna ${text} disalin!`);
-            }).catch(err => {
-                console.error('Failed to copy', err);
-            });
+        // 4. Export & Copy (FIXED for iframe permissions)
+        function copyToClipboard(text, successMessage = null) {
+            // Fallback method using textarea and execCommand, which works in iframes
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            // Ensure it's not visible but part of the DOM
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            textArea.style.top = "0";
+            document.body.appendChild(textArea);
+            
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    const msg = successMessage ? successMessage : `Warna ${text} disalin!`;
+                    showToast(msg);
+                } else {
+                    showToast("Gagal menyalin (Browser Blocked)", true);
+                }
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+                showToast("Error saat menyalin", true);
+            }
+            
+            document.body.removeChild(textArea);
         }
 
         function exportCSS() {
@@ -812,7 +834,8 @@
                 css += `  --color-${i + 1}: ${c.hex};\n`;
             });
             css += `}`;
-            navigator.clipboard.writeText(css).then(() => showToast("CSS Variables disalin!"));
+            // Use generic copy function
+            copyToClipboard(css, "CSS Variables disalin!");
         }
 
         function exportImage() {
@@ -868,12 +891,9 @@
                 }
                 
                 if (e.code === 'KeyC') {
-                    // Copy the color user is hovering over? 
-                    // Difficult to track hover in pure JS keyboard event without tracking mouse pos.
-                    // Instead, let's copy the whole palette as text array to clipboard
+                    // Copy palette as array
                     const arr = colors.map(c => c.hex).join(', ');
-                    copyToClipboard(arr);
-                    showToast("Semua hex disalin!");
+                    copyToClipboard(arr, "Semua hex disalin!");
                 }
 
                 if (e.code === 'KeyL') {
